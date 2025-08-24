@@ -2,6 +2,8 @@
 
 This project implements a real-time sensor data dashboard using FastAPI for the backend and Server-Sent Events (SSE) to push data to a simple HTML frontend. The dashboard visualizes simulated sensor readings.
 
+![Uploading image.png…]()
+
 ## Features
 
 - Real-time sensor data visualization.
