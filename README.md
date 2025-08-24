@@ -1,8 +1,9 @@
-# Sensor Dashboard
+<img width="939" height="912" alt="image" src="https://github.com/user-attachments/assets/1878e876-9e67-4c8c-aa17-9361a481fb11" /># Sensor Dashboard
 
 This project implements a real-time sensor data dashboard using FastAPI for the backend and Server-Sent Events (SSE) to push data to a simple HTML frontend. The dashboard visualizes simulated sensor readings.
 
-![Uploading image.png…]()
+![dashboard](https://github.com/user-attachments/assets/77f59aa8-c954-4e0a-9ef6-c69f30b91a66)
+
 
 ## Features
 
