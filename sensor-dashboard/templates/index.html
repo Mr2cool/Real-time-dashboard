@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="navbar bg-base-100 shadow-lg rounded-box mb-8">
+    <div class="flex-1">
+        <a class="btn btn-ghost normal-case text-xl">🌡️ Real-time Sensor Dashboard</a>
+    </div>
+    <div class="flex-none">
+        <ul class="menu menu-horizontal px-1">
+            <li><a>Home</a></li>
+            <li><a>About</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div class="card w-full bg-base-100 shadow-xl image-full">
+
+        <div class="card-body">
+            <h2 class="card-title text-white">Temperature</h2>
+            <p class="text-white text-5xl font-bold" id="current-temperature">--°C</p>
+            <div class="card-actions justify-end">
+                <div class="badge badge-outline text-white">Live</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card w-full bg-base-100 shadow-xl image-full">
+
+        <div class="card-body">
+            <h2 class="card-title text-white">Humidity</h2>
+            <p class="text-white text-5xl font-bold" id="current-humidity">--%</p>
+            <div class="card-actions justify-end">
+                <div class="badge badge-outline text-white">Live</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card w-full bg-base-100 shadow-xl image-full">
+
+        <div class="card-body">
+            <h2 class="card-title text-white">Status</h2>
+            <p class="text-white text-5xl font-bold" id="current-status">--</p>
+            <div class="card-actions justify-end">
+                <div class="badge badge-outline text-white">Live</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card bg-base-100 shadow-xl p-6 mb-8">
+    <h2 class="card-title mb-4">Temperature & Humidity Trends</h2>
+    <canvas id="sensorChart"></canvas>
+</div>
+
+<div class="card bg-base-100 shadow-xl p-6">
+    <h2 class="card-title mb-4">Recent Readings</h2>
+    <div class="overflow-x-auto">
+        <table class="table w-full">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Temperature (°C)</th>
+                    <th>Humidity (%)</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="recent-readings-table">
+                <!-- Data will be inserted here by HTMX -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const sensorChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Temperature (°C)',
+                    data: [],
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1,
+                    fill: false
+                },
+                {
+                    label: 'Humidity (%)',
+                    data: [],
+                    borderColor: 'rgb(54, 162, 235)',
+                    tension: 0.1,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'second',
+                        tooltipFormat: 'HH:mm:ss'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                },
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Value'
+                    }
+                }
+            }
+        }
+    });
+
+    document.body.addEventListener('htmx:sseMessage', function (evt) {
+        const data = JSON.parse(evt.detail.data);
+        console.log('SSE Message:', data);
+
+        // Update current values
+        document.getElementById('current-temperature').innerText = `${data.temperature}°C`;
+        document.getElementById('current-humidity').innerText = `${data.humidity}%`;
+        document.getElementById('current-status').innerText = data.status.toUpperCase();
+
+        // Update chart
+        sensorChart.data.labels.push(data.timestamp);
+        sensorChart.data.datasets[0].data.push(data.temperature);
+        sensorChart.data.datasets[1].data.push(data.humidity);
+
+        // Keep only the last 20 data points for the chart
+        const maxDataPoints = 20;
+        if (sensorChart.data.labels.length > maxDataPoints) {
+            sensorChart.data.labels.shift();
+            sensorChart.data.datasets[0].data.shift();
+            sensorChart.data.datasets[1].data.shift();
+        }
+        sensorChart.update();
+
+        // Update recent readings table
+        const tableBody = document.getElementById('recent-readings-table');
+        const newRow = `
+            <tr>
+                <td>${new Date(data.timestamp).toLocaleTimeString()}</td>
+                <td>${data.temperature}</td>
+                <td>${data.humidity}</td>
+                <td><span class="badge badge-lg ${data.status === 'normal' ? 'badge-success' : data.status === 'warning' ? 'badge-warning' : 'badge-error'}">${data.status.toUpperCase()}</span></td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('afterbegin', newRow);
+
+        // Keep only the last 20 rows in the table
+        while (tableBody.children.length > maxDataPoints) {
+            tableBody.lastChild.remove();
+        }
+    });
+
+    // Initial load of chart data (if any)
+    // This part would typically fetch historical data if available
+    // For this example, we start with empty chart and populate via SSE
+</script>
+
+<div hx-ext="sse" sse-connect="/sse" sse-swap="new_data">
+    <!-- This div listens for SSE events and triggers updates -->
+</div>
+{% endblock %}
